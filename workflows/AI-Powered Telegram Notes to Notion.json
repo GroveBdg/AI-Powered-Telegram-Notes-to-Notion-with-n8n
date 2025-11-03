@@ -1,0 +1,572 @@
+{
+  "name": "AI-Powered Telegram Notes to Notion",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        1104,
+        48
+      ],
+      "id": "331d6e60-7ca1-4ded-8119-e798b896ff18",
+      "name": "Telegram Trigger",
+      "webhookId": "aec90e60-f9fb-41a4-bd3c-846926955abc",
+      "credentials": {
+        "telegramApi": {
+          "id": "KgEKOYXr5EzzctSy",
+          "name": "Automation_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "ea01e283-d967-41b5-aaa9-bf44fb1fd011"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4654449d-0e6f-4e24-9e23-a5d926cb5ad6",
+                    "leftValue": "={{ $json.message.voice.file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Voice"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        1280,
+        48
+      ],
+      "id": "55a5f88d-e5c5-4753-b293-1c2eaf0fc786",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1456,
+        176
+      ],
+      "id": "84f72f68-8e32-43a0-b1e2-582166a202a4",
+      "name": "Get a file",
+      "webhookId": "6a69002c-f689-4665-bb64-1466feb4b629",
+      "credentials": {
+        "telegramApi": {
+          "id": "KgEKOYXr5EzzctSy",
+          "name": "Automation_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "==User Message: {{ $json.message?.text ?? $json.text }}",
+        "options": {
+          "systemMessage": "=## Role\nYou are an assistant for capturing user notes. The user sends messages via Telegram. Treat each message as a note that should be saved in Notion.\n\n## Purpose\nYou will analyze each note and extract the following:\n1. **Type** – to define the note type. Possible values: *Question, Task, Idea, Observation, Research*.\n2. **Category** – to define the note category. Possible values: *Customers, CRM, Marketing, Social Media, Personal, Offers, Projects*.\n3. **Note Content** – copy the full content of the note exactly as sent by the user. Do NOT modify it or add dates/times.\n\nGenerate a concise title for the note based solely on its content. Do NOT include the creation date in the title. Store the creation date in a separate field called \"Created At\".\n\nDo not ask for confirmation — simply prepare the data for saving.\n\n## Tools\nYou have access to the **AddNote** tool, which allows you to create notes in Notion.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        2064,
+        128
+      ],
+      "id": "3f87f2d5-e838-44e2-be12-d8315240bcc0",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2064,
+        320
+      ],
+      "id": "178bea1c-7439-4266-9bd7-5c4bc6a8984a",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "I9av01fz7ctA8QnZ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2368,
+        128
+      ],
+      "id": "6f0e0004-bbf2-48dc-b767-8892760e963f",
+      "name": "Send a text message",
+      "webhookId": "26b571f8-a79e-4461-acc6-ed49e8344f64",
+      "credentials": {
+        "telegramApi": {
+          "id": "KgEKOYXr5EzzctSy",
+          "name": "Automation_bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "29f2e486-99a9-8053-ad6f-df3b88cc950b",
+          "mode": "list",
+          "cachedResultName": "AI Notes Inbox",
+          "cachedResultUrl": "https://www.notion.so/29f2e48699a98053ad6fdf3b88cc950b"
+        },
+        "title": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Title', ``, 'string') }}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "=Category|select",
+              "selectValue": "={{ $fromAI('category', 'Notes category', 'string') }}"
+            },
+            {
+              "key": "=Type|select",
+              "selectValue": "={{ $fromAI('type', 'Note Type', 'string') }}"
+            },
+            {
+              "key": "=Note Content|rich_text",
+              "textContent": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notionTool",
+      "typeVersion": 2.2,
+      "position": [
+        2224,
+        320
+      ],
+      "id": "676ec527-db92-44bb-ac20-00c426d9a87c",
+      "name": "AddNote",
+      "credentials": {
+        "notionApi": {
+          "id": "cwWTYpSiijQujt8q",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        176
+      ],
+      "id": "c47c35a0-378d-43d3-b53a-461938209ca1",
+      "name": "Transcribe a recording",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "I9av01fz7ctA8QnZ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a0e0b621-c05e-41f5-97b7-c1fafa7fee10",
+              "name": "text",
+              "value": "={{ $json.content.parts[0].text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1840,
+        176
+      ],
+      "id": "09a2adcd-3c49-4875-9a41-352f99a0d206",
+      "name": "Extract Transcription Text"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ffb57db5-9a42-4333-bdb6-afd32c6671ff",
+              "name": "text",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1680,
+        -16
+      ],
+      "id": "9873506b-5860-418d-826c-8a95a4b1505b",
+      "name": "Extract Message Text"
+    },
+    {
+      "parameters": {
+        "content": "## Telegram Trigger\nCaptures incoming messages from Telegram.\nTriggers workflow on new messages or voice notes.",
+        "height": 256,
+        "width": 272
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        992,
+        -64
+      ],
+      "typeVersion": 1,
+      "id": "a00b60e6-9195-4630-8372-1f2aa97d3ad4",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## Switch\nDetermines if incoming message is text or voice.\nRoutes to text processing or transcription accordingly.",
+        "height": 352,
+        "width": 150,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1280,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "3074b499-ebeb-4a9a-814c-143c8b49f058",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Extract Message Text\nExtracts text content from Telegram message.\nInput: $json.message.text\nOutput: 'text' for AI Agent.",
+        "height": 304,
+        "width": 208,
+        "color": 2
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1616,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "18c84249-0213-49c6-9a09-7f723a7e88f9",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n## Get a File\nRetrieves audio file from Telegram voice message.\nInput: $json.message.voice.file_id\nOutput: binary audio for transcription.",
+        "height": 336,
+        "width": 224,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1392,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "4f9b71ec-98ae-41c8-97c0-47f6e11683c3",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n## Transcribe Audio\nTranscribes audio message to text using Google Gemini.\nInput: binary audio from 'Get a File'.\nOutput: text transcription",
+        "height": 368,
+        "width": 208,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1616,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "79f08b91-1652-4411-be00-cd15102c2871",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n## Extract Transcription Text\nExtracts transcription text from API response.\nOutput: 'text' for AI Agent.",
+        "height": 400,
+        "width": 176,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1824,
+        160
+      ],
+      "typeVersion": 1,
+      "id": "fa30a1cf-5d7d-42a8-bfd1-21884bdda686",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "content": "## AI Agent\nProcesses extracted text to generate note metadata:\n- title\n- type\n- category\n- noteContent\n- createdAt",
+        "height": 336,
+        "width": 256,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2048,
+        -80
+      ],
+      "typeVersion": 1,
+      "id": "f9396f97-28be-4d01-9205-fa06d1cc8c6b",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n## Google Gemini Model\nLanguage model used by AI Agent for processing notes.\nProvides NLP capabilities for title, type, and category generation.",
+        "height": 384,
+        "width": 176
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2016,
+        304
+      ],
+      "typeVersion": 1,
+      "id": "aebe0f35-d531-4b24-9e95-68ce9ef7d410",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "## Send Text\nSends processed output back to Telegram chat.\nInput: $json.output from AI Agent.",
+        "height": 288,
+        "width": 224,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2336,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "532479bc-5467-4567-8ac7-cd9727bb719c",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "\n\n\n\n\n\n\n\n\n\n\n\n## Save to Notion\nStores processed note into Notion database.\nFields: title, type, category, noteContent, createdAt",
+        "height": 288,
+        "width": 208,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2192,
+        304
+      ],
+      "typeVersion": 1,
+      "id": "3cfdd176-9787-4d97-a68c-d9076ae482f3",
+      "name": "Sticky Note9"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract Message Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Transcribe a recording",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AddNote": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        [
+          {
+            "node": "Extract Transcription Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Transcription Text": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message Text": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "99c6ca9e-c72d-4d40-b99c-20b7cf0af037",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4de8a13b1a92f934a2c777a93d52eceb8549afda747f6c680f227b748b6c36da"
+  },
+  "id": "xeCx7OrSNWeczyAK",
+  "tags": []
+}
